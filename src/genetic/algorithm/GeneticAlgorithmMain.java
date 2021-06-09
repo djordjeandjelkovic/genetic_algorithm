@@ -21,44 +21,68 @@ public class GeneticAlgorithmMain {
 	public static final long NUMBER_OF_MUTATIONS = Math.round(MUTATION_RATE * TOTAL_GEN);
 
 	public static void main(String[] args) {
-		List<Chromosome> chromosomes = new ArrayList<>();
-		chromosomes.add(new Chromosome(12, 5, 23, 8));
-		chromosomes.add(new Chromosome(2, 21, 18, 3));
-		chromosomes.add(new Chromosome(10, 4, 13, 14));
-		chromosomes.add(new Chromosome(20, 1, 10, 6));
-		chromosomes.add(new Chromosome(1, 4, 13, 19));
-		chromosomes.add(new Chromosome(20, 5, 17, 1));
 		
-		int i = 0;
-		while(i < 50) {
+		// KORAK 1. INICIJALIZACIJA
+		List<Chromosome> chromosomes = createInitialChromosomes();
+		
+		int i = 1;
+		while(i <= 1000) {
 			chromosomes = getNextGeneration(chromosomes);
 			
-			System.out.println("NEW");
+			boolean theBestWasFound = false;
 			for(Chromosome c: chromosomes) {
-				System.out.println(c.toString());
+				
+				if((c.getA() + 2 * c.getB() + 3 * c.getC() + 4 * c.getD()) == 30) {
+					theBestWasFound = true;
+					break;
+				}
 			}
+			
+			if(theBestWasFound) {
+				System.out.println("The best chromosome was found after " + i + " iterations.");
+				
+				System.out.println("Chromosomes:");
+				for(Chromosome c: chromosomes) {
+					if((c.getA() + 2 * c.getB() + 3 * c.getC() + 4 * c.getD()) == 30) {
+						System.out.println("The best --> " + c.toString());
+					} else {
+						System.out.println(c.toString());
+					}
+					
+				}
+				
+				break;
+			}
+			
 			i++;
 		}
 	}
 	
 	public static List<Chromosome> getNextGeneration(List<Chromosome> chromosomes) {
+		// KORAK 3. SELEKCIJA - FUNKCIJA PRILAGODJENOSTI
 		List<Fitness> fitnesses = getFitnessListFromChromosomes(chromosomes);
 		
 		double totalFitnesses = 0;
 		for(Fitness fitness: fitnesses) {
 			totalFitnesses += fitness.getValue();
 		}
+				
+		// KORAK 3. SELEKCIJA - VEROVATNOCA SELEKCIJE HROMOZOMA
+		List<Probability> probabilities = getProbabilitiesFromFitnesses(fitnesses, totalFitnesses);
 		
-		List<Probability> probabilities = getProbabilitiesFromFitnesses(fitnesses, totalFitnesses);		
+		// KORAK 3. SELEKCIJA - KUMULATIVNE VEROVATNOCE
 		List<CumulativeProbability> cumulativeProbabilities = getCumulativeProbabilitiesFromProbabilities(probabilities);
 		
-		List<Double> randomList = generateStaticRandomList();
+		// KORAK 3. SELEKCIJA - RULET SELEKCIJA
+		List<Double> randomList = generateRandomList();
 		List<Chromosome> newChromosomes = getNewChromosomeList(chromosomes, cumulativeProbabilities, randomList);
 		
-		List<Double> newRandomList = generateNewStaticRandomList();
+		// KORAK 4. UKRSTANJE
+		List<Double> newRandomList = generateRandomList();
 		List<Integer> indexesUnderCrossOverRate = getChromosomeListUnderCrossOverRate(newChromosomes, newRandomList);
 		
-		List<Integer> cutRandomList = generateCutRandomList();
+		// KORAK 5. MUTIRANJE
+		List<Integer> cutRandomList = generateCutRandomList(indexesUnderCrossOverRate.size());
 		updateChromosomeListWithCutGen(newChromosomes, indexesUnderCrossOverRate, cutRandomList);
 		mutateChromosomes(newChromosomes);
 		
@@ -82,7 +106,7 @@ public class GeneticAlgorithmMain {
 
 	public static List<Fitness> getFitnessListFromChromosomes(List<Chromosome> chromosomes) {
 		List<Fitness> fitnesses = new ArrayList<>();	
-		chromosomes.forEach((chromosome) -> fitnesses.add(new Fitness(1 / (1.0 + chromosome.getAbsolute()))));
+		chromosomes.forEach((chromosome) -> fitnesses.add(new Fitness(1 / (1.0 + chromosome.getAbsolute())))); // KORAK 2. getAbsolute IZRACUNAVANJE CILJNE FUNKCIJE
 		
 		return fitnesses;
 	}
@@ -117,35 +141,12 @@ public class GeneticAlgorithmMain {
 		return randomList;
 	}
 	
-	public static List<Double> generateStaticRandomList() {
-		List<Double> randomList = new ArrayList<>();
-		randomList.add(0.201);
-		randomList.add(0.284);
-		randomList.add(0.099);
-		randomList.add(0.822);
-		randomList.add(0.398);
-		randomList.add(0.501);
-		
-		return randomList;
-	}
-	
-	public static List<Double> generateNewStaticRandomList() {
-		List<Double> randomList = new ArrayList<>();
-		randomList.add(0.191);
-		randomList.add(0.259);
-		randomList.add(0.760);
-		randomList.add(0.006);
-		randomList.add(0.159);
-		randomList.add(0.340);
-		
-		return randomList;
-	}
-	
-	public static List<Integer> generateCutRandomList() {
+	public static List<Integer> generateCutRandomList(int selectedChromosomes) {
+		Random r = new Random();
 		List<Integer> randomList = new ArrayList<>();
-		randomList.add(1);
-		randomList.add(1);
-		randomList.add(2);
+		for(int i = 0; i < selectedChromosomes; i++) {
+			randomList.add(r.nextInt(TOTAL_GEN_IN_CHROMOSOME - 1) + 1);
+		}
 		
 		return randomList;
 	}
@@ -153,7 +154,7 @@ public class GeneticAlgorithmMain {
 	public static List<Chromosome> getNewChromosomeList(List<Chromosome> chromosomes, List<CumulativeProbability> cumulativeProbabilities, List<Double> randomList) {
 		List<Chromosome> newChromosomes = new ArrayList<>();
 		
-		for(Double randomNumber: randomList) {			
+		for(Double randomNumber: randomList) {
 			for(int j = 0; j < cumulativeProbabilities.size() - 1; j++) {
 				if(j == 0 && randomNumber < cumulativeProbabilities.get(j).getValue()) {
 					newChromosomes.add(new Chromosome(chromosomes.get(j)));
@@ -182,6 +183,11 @@ public class GeneticAlgorithmMain {
 	}
 	
 	public static void updateChromosomeListWithCutGen(List<Chromosome> chromosomes, List<Integer> indexesUnderCrossOverRate, List<Integer> randomList) {
+		if(indexesUnderCrossOverRate.size() == 0) {
+			//System.out.println("No chromosomes under cross over rate.");
+			return;
+		}
+		
 		Chromosome firstChromosomeCopy = new Chromosome(chromosomes.get(indexesUnderCrossOverRate.get(0)));
 		for(int i = 0; i < indexesUnderCrossOverRate.size(); i++) {			
 			if(i == indexesUnderCrossOverRate.size() - 1) {
@@ -212,12 +218,17 @@ public class GeneticAlgorithmMain {
 	
 	public static void mutateChromosomes(List<Chromosome> chromosomes) {
 		List<Integer> randomYieldsNumber = new ArrayList<Integer>();
-		randomYieldsNumber.add(12);
-		randomYieldsNumber.add(18);
+		Random r = new Random();
 		
+		int numberOfMutations = (int) (MUTATION_RATE * TOTAL_GEN);
+		for(int i = 0; i < numberOfMutations; i++) {
+			randomYieldsNumber.add(r.nextInt(TOTAL_GEN - 1) + 1);
+		}
+
 		List<Integer> randomReplaceNumber = new ArrayList<Integer>();
-		randomReplaceNumber.add(2);
-		randomReplaceNumber.add(5);
+		for(int i = 0; i < numberOfMutations; i++) {
+			randomReplaceNumber.add(r.nextInt(MAX_NUMBER_OF_CHROMOSOME - 1) + 1);
+		}
 		
 		for(int i = 0; i < randomYieldsNumber.size(); i++) {
 			int chromosomeIndex = randomYieldsNumber.get(i) / TOTAL_GEN_IN_CHROMOSOME;
