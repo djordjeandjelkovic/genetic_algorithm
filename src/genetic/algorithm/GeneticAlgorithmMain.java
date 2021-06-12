@@ -25,13 +25,21 @@ public class GeneticAlgorithmMain {
 		// KORAK 1. INICIJALIZACIJA
 		List<Chromosome> chromosomes = createInitialChromosomes();
 		
+		System.out.println("Inicijalni hromozomi");
+		for(Chromosome c: chromosomes) {
+			System.out.println(c.toString());
+		}
+		
 		int i = 1;
+		
+		// Idemo do 1000, dokle bi trebalo da nadjemo optimalni hromozom
 		while(i <= 1000) {
 			chromosomes = getNextGeneration(chromosomes);
 			
 			boolean theBestWasFound = false;
 			for(Chromosome c: chromosomes) {
 				
+				// Ako je zadovoljen uslov funkcije, onda smo nasli optimalan hromozom i mozemo prekinuti sa radom program
 				if((c.getA() + 2 * c.getB() + 3 * c.getC() + 4 * c.getD()) == 30) {
 					theBestWasFound = true;
 					break;
@@ -47,8 +55,7 @@ public class GeneticAlgorithmMain {
 						System.out.println("The best --> " + c.toString());
 					} else {
 						System.out.println(c.toString());
-					}
-					
+					}					
 				}
 				
 				break;
